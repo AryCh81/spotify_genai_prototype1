@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spotify × GenAI — Open Project 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --sp-green: #1DB954;
+      --sp-black: #121212;
+      --sp-dark: #181818;
+      --sp-card: #282828;
+      --sp-hover: #3E3E3E;
+      --sp-text: #FFFFFF;
+      --sp-sub: #B3B3B3;
+      --sp-muted: #6b6b6b;
+      --ai-purple: #7C3AED;
+      --ai-purple-light: #A78BFA;
+      --ai-cyan: #06B6D4;
+      --ai-pink: #EC4899;
+      --ai-amber: #F59E0B;
+      --radius: 8px;
+      --sidebar-w: 240px;
+      --player-h: 90px;
+      --mobile-nav-h: 60px;
+    }
+
+    html { height: 100%; }
+    body { height: 100%; background: var(--sp-black); color: var(--sp-text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+
+    /* ═══════════════════════════════════════════════════════════
+       DESKTOP LAYOUT  (≥769px)
+    ═══════════════════════════════════════════════════════════ */
+    #app {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      grid-template-rows: 1fr var(--player-h);
+      height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      grid-column: 1; grid-row: 1;
+      background: var(--sp-black);
+      padding: 24px 12px;
+      display: flex; flex-direction: column; gap: 6px;
+      border-right: 1px solid #222;
+      overflow-y: auto;
+    }
+    .sp-logo { display: flex; align-items: center; gap: 10px; padding: 8px 12px 20px; }
+    .sp-logo svg { width: 32px; height: 32px; flex-shrink:0; }
+    .sp-logo span { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -0.5px; }
+    .nav-section { padding: 12px 0 4px 12px; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; color: var(--sp-muted); text-transform: uppercase; }
+    .nav-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 10px 12px; border-radius: var(--radius);
+      font-size: 13.5px; font-weight: 500; color: var(--sp-sub);
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
+    }
+    .nav-item:hover { color: var(--sp-text); background: #1a1a1a; }
+    .nav-item.active { color: var(--sp-text); }
+    .nav-item .icon { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+    .ai-badge {
+      margin-left: auto; font-size: 9px; font-weight: 700; letter-spacing: 1px;
+      background: linear-gradient(135deg, var(--ai-purple), var(--ai-cyan));
+      color: white; padding: 2px 6px; border-radius: 20px; white-space: nowrap;
+    }
+
+    /* ── Main ── */
+    #main {
+      grid-column: 2; grid-row: 1;
+      background: linear-gradient(180deg, #1a0a2e 0%, #121212 40%);
+      overflow-y: auto;
+      padding-bottom: 32px;
+    }
+    .top-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 20px 32px 0;
+      position: sticky; top: 0; z-index: 10;
+      background: linear-gradient(180deg, #1a0a2e 85%, transparent);
+    }
+    .nav-btn { background: rgba(0,0,0,0.5); border: none; border-radius: 50%; width: 32px; height: 32px; color: var(--sp-text); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink:0; }
+    .top-bar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .premium-btn { background: var(--sp-text); color: var(--sp-black); border: none; border-radius: 20px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .user-avatar { width:32px;height:32px;border-radius:50%;background:#7C3AED;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex-shrink:0; }
+
+    /* ── Hero ── */
+    .hero { padding: 20px 32px 28px; }
+    .hero h1 { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; letter-spacing: -1px; line-height: 1.15; }
+    .hero h1 span { color: var(--sp-green); }
+    .hero p { color: var(--sp-sub); font-size: 14px; margin-top: 8px; max-width: 520px; line-height: 1.55; }
+
+    /* ── Stats ── */
+    .stats-strip { margin: 0 32px 24px; display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .stat-card { background: var(--sp-card); border-radius: 10px; padding: 16px 18px; border-left: 3px solid transparent; }
+    .stat-card.green { border-left-color: var(--sp-green); }
+    .stat-card.purple { border-left-color: var(--ai-purple); }
+    .stat-card.cyan { border-left-color: var(--ai-cyan); }
+    .stat-card.amber { border-left-color: var(--ai-amber); }
+    .stat-val { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; }
+    .stat-lbl { font-size: 11px; color: var(--sp-sub); margin-top: 4px; line-height: 1.3; }
+
+    /* ── Section / Feature cards ── */
+    .section { padding: 0 32px 28px; }
+    .section-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-family: 'Space Grotesk', sans-serif; flex-wrap: wrap; }
+    .ai-tag { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; background: linear-gradient(135deg, var(--ai-purple), var(--ai-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; border: 1px solid rgba(124,58,237,0.4); padding: 3px 8px; border-radius: 4px; }
+    .feature-cards { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; }
+    .feature-card { background: var(--sp-card); border-radius: 12px; padding: 18px 14px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; position: relative; overflow: hidden; }
+    .feature-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:12px 12px 0 0; }
+    .feature-card.mood-dj::before { background: var(--ai-purple); }
+    .feature-card.chat-discover::before { background: var(--sp-green); }
+    .feature-card.vibe-match::before { background: var(--ai-amber); }
+    .feature-card.co-creator::before { background: var(--ai-pink); }
+    .feature-card.radio-scripts::before { background: var(--ai-cyan); }
+    .feature-card:hover { background: var(--sp-hover); transform: translateY(-2px); border-color: rgba(255,255,255,0.08); }
+    .feature-card.active { border-color: rgba(124,58,237,0.6); background: rgba(124,58,237,0.1); }
+    .feature-icon { font-size: 26px; margin-bottom: 10px; }
+    .feature-name { font-size: 12.5px; font-weight: 700; margin-bottom: 5px; }
+    .feature-desc { font-size: 10.5px; color: var(--sp-sub); line-height: 1.4; }
+
+    /* ── Demo Panel ── */
+    .demo-panel { margin: 0 32px 32px; background: var(--sp-card); border-radius: 16px; padding: 24px; border: 1px solid rgba(124,58,237,0.3); min-height: 280px; }
+    .demo-panel.hidden { display: none; }
+    .demo-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .demo-icon { font-size: 30px; }
+    .demo-title { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; }
+    .demo-subtitle { font-size: 12.5px; color: var(--sp-sub); margin-top: 3px; }
+
+    /* Inputs */
+    .ai-input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .ai-input { flex: 1; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 50px; padding: 11px 18px; color: var(--sp-text); font-size: 14px; outline: none; font-family: 'DM Sans', sans-serif; transition: border-color 0.2s; min-width: 0; }
+    .ai-input:focus { border-color: var(--ai-purple); }
+    .ai-input::placeholder { color: var(--sp-muted); }
+    .ai-btn { background: var(--sp-green); border: none; border-radius: 50px; padding: 11px 22px; color: var(--sp-black); font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; }
+    .ai-btn:hover { background: #1ed760; transform: scale(1.02); }
+    .ai-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Chips / presets */
+    .chips { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .chip { background: #1a1a1a; border: 1px solid #333; border-radius: 20px; padding: 5px 13px; font-size: 12px; cursor: pointer; transition: all .15s; color: var(--sp-sub); white-space: nowrap; }
+    .chip:hover { border-color: var(--ai-purple); color: var(--sp-text); }
+
+    /* AI states */
+    .ai-thinking { display: flex; align-items: center; gap: 10px; color: var(--ai-purple-light); font-size: 14px; padding: 16px 0; }
+    .dots span { animation: blink 1.2s infinite; }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+
+    .ai-narrative { background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; color: #d4c5ff; animation: fadeSlide 0.5s ease; }
+    .ai-label { font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; color: var(--ai-purple-light); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+
+    /* Track list */
+    .track-list { display: flex; flex-direction: column; gap: 2px; }
+    .track-item { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s; animation: fadeSlide 0.4s ease both; }
+    .track-item:hover { background: var(--sp-hover); }
+    @keyframes fadeSlide { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    .track-num { width: 18px; text-align: center; color: var(--sp-muted); font-size: 12px; flex-shrink: 0; }
+    .track-art { width: 38px; height: 38px; border-radius: 4px; background: var(--sp-hover); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+    .track-info { flex: 1; min-width: 0; }
+    .track-name { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-artist { font-size: 11.5px; color: var(--sp-sub); margin-top: 2px; }
+    .track-dur { font-size: 11.5px; color: var(--sp-muted); flex-shrink: 0; }
+    .ai-explain-btn { font-size: 10px; background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.4); color: var(--ai-purple-light); padding: 3px 8px; border-radius: 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+    .ai-explain-btn:hover { background: rgba(124,58,237,0.4); }
+
+    /* Chat */
+    .chat-messages { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding-right: 4px; }
+    .msg { display: flex; gap: 8px; align-items: flex-start; animation: fadeSlide 0.3s ease; }
+    .msg.user { flex-direction: row-reverse; }
+    .msg-bubble { max-width: 78%; padding: 9px 13px; border-radius: 16px; font-size: 13px; line-height: 1.5; }
+    .msg.user .msg-bubble { background: var(--sp-green); color: #000; border-bottom-right-radius: 4px; }
+    .msg.ai .msg-bubble { background: #2a1a4a; color: var(--sp-text); border-bottom-left-radius: 4px; }
+    .msg-avatar { width: 26px; height: 26px; border-radius: 50%; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .msg.ai .msg-avatar { background: linear-gradient(135deg, var(--ai-purple), var(--ai-cyan)); }
+    .msg.user .msg-avatar { background: var(--sp-green); color:#000; }
+
+    /* Photo drop */
+    .photo-drop { border: 2px dashed #3a3a3a; border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 14px; }
+    .photo-drop:hover, .photo-drop.dragover { border-color: var(--ai-amber); background: rgba(245,158,11,0.05); }
+    .photo-drop .drop-icon { font-size: 32px; margin-bottom: 8px; }
+    .photo-drop p { color: var(--sp-sub); font-size: 13px; }
+    .photo-drop input { display: none; }
+
+    /* ── Now Playing ── */
+    #now-playing {
+      grid-column: 1 / 3; grid-row: 2;
+      background: #181818;
+      border-top: 1px solid #2a2a2a;
+      display: flex; align-items: center;
+      padding: 0 20px; gap: 16px;
+    }
+    .np-left { display: flex; align-items: center; gap: 12px; width: 260px; min-width: 0; flex-shrink: 0; }
+    .np-art { width: 52px; height: 52px; border-radius: 5px; background: var(--sp-card); display: flex; align-items: center; justify-content: center; font-size: 21px; flex-shrink: 0; }
+    .np-info { min-width: 0; flex: 1; }
+    .np-track { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .np-artist { font-size: 11px; color: var(--sp-sub); margin-top: 2px; }
+    .np-heart { font-size: 17px; cursor: pointer; color: var(--sp-sub); flex-shrink: 0; }
+    .np-controls { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+    .np-btn-row { display: flex; align-items: center; gap: 20px; }
+    .np-btn { background: none; border: none; color: var(--sp-sub); cursor: pointer; font-size: 13px; transition: color 0.15s; }
+    .np-btn:hover { color: var(--sp-text); }
+    .np-btn.play { width: 32px; height: 32px; background: var(--sp-text); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--sp-black); }
+    .np-btn.play:hover { background: #eee; transform: scale(1.05); }
+    .np-progress { width: 100%; max-width: 460px; display: flex; align-items: center; gap: 8px; }
+    .progress-bar { flex: 1; height: 4px; background: #535353; border-radius: 2px; cursor: pointer; }
+    .progress-fill { height: 100%; background: var(--sp-text); border-radius: 2px; width: 32%; transition: width 0.2s; }
+    .progress-bar:hover .progress-fill { background: var(--sp-green); }
+    .np-time { font-size: 10.5px; color: var(--sp-sub); flex-shrink: 0; }
+    .np-right { width: 190px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-shrink: 0; }
+    .np-ai-dj { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; background: linear-gradient(135deg, var(--ai-purple), var(--ai-cyan)); color: white; padding: 4px 9px; border-radius: 12px; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
+    .np-ai-dj:hover { opacity: 0.85; }
+    .vol-bar { width: 70px; height: 4px; background: #535353; border-radius: 2px; }
+
+    /* Mobile bottom nav */
+    #mobile-nav { display: none; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #535353; border-radius: 3px; }
+
+    /* Tooltip */
+    .tooltip { position: relative; }
+    .tooltip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #333; color: #fff; font-size: 10px; padding: 3px 7px; border-radius: 4px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+    .tooltip:hover::after { opacity: 1; }
+
+    /* ═══════════════════════════════════════════════════════════
+       TABLET  (≤900px)
+    ═══════════════════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      :root { --sidebar-w: 200px; }
+
+      .hero h1 { font-size: 28px; }
+      .stats-strip { grid-template-columns: repeat(2,1fr); gap: 10px; margin: 0 20px 20px; }
+      .section { padding: 0 20px 24px; }
+      .hero { padding: 16px 20px 22px; }
+      .top-bar { padding: 16px 20px 0; }
+      .feature-cards { grid-template-columns: repeat(3,1fr); }
+      .demo-panel { margin: 0 20px 24px; padding: 20px; }
+      .stats-strip { margin: 0 20px 20px; }
+
+      .np-right { display: none; }
+      .np-left { width: 200px; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       MOBILE  (≤640px)
+    ═══════════════════════════════════════════════════════════ */
+    @media (max-width: 640px) {
+      body { overflow: hidden; }
+
+      #app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto auto;
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      /* Hide desktop sidebar */
+      #sidebar { display: none; }
+
+      /* Main fills full width */
+      #main {
+        grid-column: 1; grid-row: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Slim top bar */
+      .top-bar { padding: 12px 16px 0; gap: 8px; }
+      .nav-btn { display: none; }
+      .premium-btn { font-size: 12px; padding: 7px 14px; }
+
+      /* Hero */
+      .hero { padding: 14px 16px 20px; }
+      .hero h1 { font-size: 22px; letter-spacing: -0.5px; }
+      .hero p { font-size: 13px; margin-top: 6px; }
+
+      /* Stats — 2-col grid */
+      .stats-strip { grid-template-columns: repeat(2,1fr); gap: 8px; margin: 0 16px 18px; }
+      .stat-val { font-size: 20px; }
+      .stat-card { padding: 12px 14px; }
+
+      /* Feature section */
+      .section { padding: 0 16px 20px; }
+      .section-title { font-size: 16px; margin-bottom: 12px; }
+      /* Horizontal scroll pill row on mobile */
+      .feature-cards {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        gap: 10px;
+        padding-bottom: 6px;
+        grid-template-columns: unset;
+      }
+      .feature-cards::-webkit-scrollbar { height: 0; }
+      .feature-card {
+        flex: 0 0 140px;
+        scroll-snap-align: start;
+        padding: 14px 12px;
+      }
+      .feature-icon { font-size: 22px; margin-bottom: 8px; }
+      .feature-name { font-size: 12px; }
+      .feature-desc { font-size: 10px; }
+
+      /* Demo panel */
+      .demo-panel { margin: 0 16px 20px; padding: 16px; border-radius: 12px; }
+      .demo-title { font-size: 17px; }
+      .demo-subtitle { font-size: 11.5px; }
+      .demo-icon { font-size: 26px; }
+
+      /* Input row — stack on very small */
+      .ai-input-row { flex-direction: column; gap: 8px; }
+      .ai-btn { width: 100%; padding: 12px; text-align: center; border-radius: 12px; }
+      .ai-input { border-radius: 12px; padding: 12px 16px; }
+
+      /* Chips wrap nicely */
+      .chips { gap: 6px; }
+      .chip { font-size: 11.5px; padding: 5px 12px; }
+
+      /* Track list — hide duration & explain on mobile */
+      .track-dur { display: none; }
+      .ai-explain-btn { display: none; }
+      .track-item { padding: 8px 10px; gap: 10px; }
+      .track-name { font-size: 13px; }
+      .track-artist { font-size: 11px; }
+
+      /* Chat bubbles wider */
+      .msg-bubble { max-width: 88%; font-size: 13px; }
+      .chat-messages { max-height: 170px; }
+
+      /* Photo drop smaller */
+      .photo-drop { padding: 24px 16px; }
+
+      /* ── Now Playing — compact mobile ── */
+      #now-playing {
+        grid-column: 1; grid-row: 2;
+        height: 70px;
+        padding: 0 12px;
+        gap: 10px;
+      }
+      .np-left { width: auto; flex: 1; min-width: 0; gap: 10px; }
+      .np-art { width: 44px; height: 44px; font-size: 18px; }
+      .np-track { font-size: 12.5px; }
+      .np-artist { font-size: 11px; }
+      .np-heart { display: none; }
+      .np-controls { flex: 0 0 auto; flex-direction: row; align-items: center; gap: 0; }
+      .np-btn-row { gap: 14px; }
+      .np-btn { font-size: 15px; }
+      .np-btn.play { width: 34px; height: 34px; }
+      /* Hide progress bar on mobile — too cramped */
+      .np-progress { display: none; }
+      .np-right { display: none; }
+
+      /* ── Mobile bottom nav ── */
+      #mobile-nav {
+        display: flex;
+        grid-column: 1; grid-row: 3;
+        background: #0d0d0d;
+        border-top: 1px solid #2a2a2a;
+        height: var(--mobile-nav-h);
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 8px;
+      }
+      .mob-nav-item {
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
+        font-size: 10px; color: var(--sp-muted); cursor: pointer; transition: color 0.15s;
+        padding: 6px 10px; border-radius: 8px; text-decoration: none;
+        flex: 1; text-align: center;
+      }
+      .mob-nav-item .mob-icon { font-size: 20px; }
+      .mob-nav-item.active { color: var(--sp-text); }
+      .mob-nav-item:hover { color: var(--sp-sub); }
+      .mob-nav-item.ai-nav { color: var(--ai-purple-light); }
+      .mob-nav-item.ai-nav.active { color: var(--ai-purple-light); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       VERY SMALL  (≤380px)
+    ═══════════════════════════════════════════════════════════ */
+    @media (max-width: 380px) {
+      .hero h1 { font-size: 19px; }
+      .stats-strip { grid-template-columns: 1fr 1fr; gap: 7px; margin: 0 12px 14px; }
+      .section { padding: 0 12px 16px; }
+      .hero { padding: 12px 12px 16px; }
+      .top-bar { padding: 10px 12px 0; }
+      .demo-panel { margin: 0 12px 16px; padding: 14px; }
+      .feature-card { flex: 0 0 120px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── SIDEBAR (desktop/tablet only) ── -->
+  <nav id="sidebar">
+    <div class="sp-logo">
+      <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      <span>Spotify</span>
+    </div>
+    <div class="nav-section">Navigation</div>
+    <a class="nav-item active" href="#"><span class="icon">🏠</span> Home</a>
+    <a class="nav-item" href="#"><span class="icon">🔍</span> Search</a>
+    <a class="nav-item" href="#"><span class="icon">📚</span> Your Library</a>
+    <div class="nav-section" style="margin-top:16px">GenAI Features</div>
+    <a class="nav-item" href="#" onclick="openFeature('mood-dj');return false;"><span class="icon">🤖</span> AI Mood DJ <span class="ai-badge">NEW</span></a>
+    <a class="nav-item" href="#" onclick="openFeature('chat');return false;"><span class="icon">💬</span> Chat & Discover <span class="ai-badge">NEW</span></a>
+    <a class="nav-item" href="#" onclick="openFeature('vibe');return false;"><span class="icon">📸</span> Visual Vibe <span class="ai-badge">NEW</span></a>
+    <a class="nav-item" href="#" onclick="openFeature('co-create');return false;"><span class="icon">✍️</span> Co-Creator <span class="ai-badge">NEW</span></a>
+    <a class="nav-item" href="#" onclick="openFeature('radio');return false;"><span class="icon">🎙️</span> AI Radio <span class="ai-badge">NEW</span></a>
+    <div class="nav-section" style="margin-top:16px">Playlists</div>
+    <a class="nav-item" href="#"><span class="icon">💚</span> Liked Songs</a>
+    <a class="nav-item" href="#"><span class="icon">🎵</span> Late Night Drives</a>
+    <a class="nav-item" href="#"><span class="icon">☀️</span> Morning Focus</a>
+    <a class="nav-item" href="#"><span class="icon">🏃</span> Workout Mix</a>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main id="main">
+    <div class="top-bar">
+      <button class="nav-btn">◀</button>
+      <button class="nav-btn">▶</button>
+      <div class="top-bar-right">
+        <button class="premium-btn">Try Premium</button>
+        <div class="user-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Good evening, Aarav 👋<br>Your music, <span>reimagined by AI</span></h1>
+      <p>Five new GenAI-powered features that understand your mood, context, and taste — built for Open Project 2026.</p>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-card green"><div class="stat-val" style="color:var(--sp-green)">+12%</div><div class="stat-lbl">Premium conversions with AI</div></div>
+      <div class="stat-card purple"><div class="stat-val" style="color:var(--ai-purple-light)">+22%</div><div class="stat-lbl">Avg session time increase</div></div>
+      <div class="stat-card cyan"><div class="stat-val" style="color:var(--ai-cyan)">+35%</div><div class="stat-lbl">Playlist saves uplift</div></div>
+      <div class="stat-card amber"><div class="stat-val" style="color:var(--ai-amber)">456M</div><div class="stat-lbl">Monthly active users impacted</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">AI-Powered Features <span class="ai-tag">GENAI</span></div>
+      <div class="feature-cards">
+        <div class="feature-card mood-dj" onclick="openFeature('mood-dj')" id="card-mood-dj">
+          <div class="feature-icon">🤖</div>
+          <div class="feature-name">AI Mood DJ</div>
+          <div class="feature-desc">Describe your mood → instant curated playlist</div>
+        </div>
+        <div class="feature-card chat-discover" onclick="openFeature('chat')" id="card-chat">
+          <div class="feature-icon">💬</div>
+          <div class="feature-name">Chat & Discover</div>
+          <div class="feature-desc">Conversational music discovery</div>
+        </div>
+        <div class="feature-card vibe-match" onclick="openFeature('vibe')" id="card-vibe">
+          <div class="feature-icon">📸</div>
+          <div class="feature-name">Visual Vibe</div>
+          <div class="feature-desc">Snap a photo → matching soundtrack</div>
+        </div>
+        <div class="feature-card co-creator" onclick="openFeature('co-create')" id="card-co-create">
+          <div class="feature-icon">✍️</div>
+          <div class="feature-name">AI Co-Creator</div>
+          <div class="feature-desc">Edit playlists with natural language</div>
+        </div>
+        <div class="feature-card radio-scripts" onclick="openFeature('radio')" id="card-radio">
+          <div class="feature-icon">🎙️</div>
+          <div class="feature-name">AI Radio</div>
+          <div class="feature-desc">Personalised DJ intros per track</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-panel hidden" id="demo-panel"></div>
+  </main>
+
+  <!-- ── NOW PLAYING ── -->
+  <div id="now-playing">
+    <div class="np-left">
+      <div class="np-art" id="np-art">🎵</div>
+      <div class="np-info">
+        <div class="np-track" id="np-track">Select a track</div>
+        <div class="np-artist" id="np-artist">—</div>
+      </div>
+      <span class="np-heart" onclick="toggleHeart(this)">♡</span>
+    </div>
+    <div class="np-controls">
+      <div class="np-btn-row">
+        <button class="np-btn tooltip" data-tip="Shuffle">⇌</button>
+        <button class="np-btn tooltip" data-tip="Previous">⏮</button>
+        <button class="np-btn play" id="play-btn" onclick="togglePlay(this)">▶</button>
+        <button class="np-btn tooltip" data-tip="Next">⏭</button>
+        <button class="np-btn tooltip" data-tip="Repeat">↺</button>
+      </div>
+      <div class="np-progress">
+        <span class="np-time">1:24</span>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <span class="np-time">3:41</span>
+      </div>
+    </div>
+    <div class="np-right">
+      <span class="np-ai-dj" onclick="openFeature('radio')">🎙️ AI DJ ON</span>
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:13px;cursor:pointer">🔈</span>
+        <div class="vol-bar"><div style="height:100%;width:65%;background:var(--sp-text);border-radius:2px"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MOBILE BOTTOM NAV ── -->
+  <nav id="mobile-nav">
+    <a class="mob-nav-item active" href="#"><div class="mob-icon">🏠</div>Home</a>
+    <a class="mob-nav-item" href="#"><div class="mob-icon">🔍</div>Search</a>
+    <a class="mob-nav-item ai-nav" href="#" onclick="openFeature('mood-dj');return false;"><div class="mob-icon">🤖</div>AI DJ</a>
+    <a class="mob-nav-item ai-nav" href="#" onclick="openFeature('chat');return false;"><div class="mob-icon">💬</div>Chat</a>
+    <a class="mob-nav-item" href="#"><div class="mob-icon">📚</div>Library</a>
+  </nav>
+
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const MOODS = {
+  "late night drive": {
+    narrative: "It's past midnight and city lights blur past your windshield. This playlist captures cinematic, melancholic solitude — indie folk bleeding into dreamy synthwave, each track a quiet companion on an empty highway.",
+    tracks: [
+      { name: "Motion Picture Soundtrack", artist: "Radiohead", dur: "5:17", emoji: "🎸" },
+      { name: "Holocene", artist: "Bon Iver", dur: "5:37", emoji: "🌲" },
+      { name: "Night Swim", artist: "R.E.M.", dur: "4:18", emoji: "🌊" },
+      { name: "Drive", artist: "The Cars", dur: "3:58", emoji: "🚗" },
+      { name: "Suburban War", artist: "Arcade Fire", dur: "4:46", emoji: "🌃" },
+    ]
+  },
+  "rainy sunday morning": {
+    narrative: "Rain on glass. Coffee going cold. This is the soundtrack for slow mornings — jazz-inflected indie, soft piano, and voices that don't need to hurry anywhere.",
+    tracks: [
+      { name: "The Night Will Always Win", artist: "Manchester Orchestra", dur: "4:12", emoji: "🌧️" },
+      { name: "Skinny Love", artist: "Bon Iver", dur: "3:58", emoji: "☕" },
+      { name: "Cinnamon", artist: "Still Woozy", dur: "2:59", emoji: "🍂" },
+      { name: "Sunday Morning", artist: "Maroon 5", dur: "4:04", emoji: "🌅" },
+      { name: "The Stable Song", artist: "Gregory Alan Isakov", dur: "3:55", emoji: "🕯️" },
+    ]
+  },
+  "gym energy": {
+    narrative: "Zero sentiment, maximum output. Pure kinetic fuel — hyperpop hooks, 140BPM trap, and bass that resets your threshold. Your rest periods are shorter now.",
+    tracks: [
+      { name: "Power", artist: "Kanye West", dur: "4:52", emoji: "💪" },
+      { name: "HUMBLE.", artist: "Kendrick Lamar", dur: "2:57", emoji: "🔥" },
+      { name: "Stronger", artist: "Daft Punk", dur: "5:43", emoji: "⚡" },
+      { name: "Till I Collapse", artist: "Eminem", dur: "4:57", emoji: "🏋️" },
+      { name: "Lose Yourself", artist: "Eminem", dur: "5:26", emoji: "🎯" },
+    ]
+  }
+};
+
+const CHAT_RESPONSES = [
+  { q: "phoebe", a: "Phoebe Bridgers with more daylight? Think Julien Baker when she's feeling hopeful, Big Thief's brighter cuts, or Japanese Breakfast's 'Jubilee' era.", tracks: [{name:"Festivities",artist:"Punch Brothers",emoji:"🎵"},{name:"Paprika",artist:"Japanese Breakfast",emoji:"🌸"},{name:"After the Storm",artist:"Mumford & Sons",emoji:"☀️"}] },
+  { q: "hip hop", a: "The boom-bap cerebral side — A Tribe Called Quest's jazz-forward grooves, early Outkast, De La Soul's philosophy sessions. Head-nodding, not jumping.", tracks: [{name:"Electric Relaxation",artist:"A Tribe Called Quest",emoji:"🎹"},{name:"Ms. Jackson",artist:"OutKast",emoji:"🌿"},{name:"Me Myself and I",artist:"De La Soul",emoji:"🕶️"}] },
+  { q: "focus", a: "Your brain needs a sonic environment without linguistic interference. Pulling Nils Frahm's piano works and Brian Eno's ambient architecture.", tracks: [{name:"Experience",artist:"Ludovico Einaudi",emoji:"🎹"},{name:"Says",artist:"Nils Frahm",emoji:"🌌"},{name:"Comptine d'Un Autre",artist:"Yann Tiersen",emoji:"📖"}] },
+];
+
+const PLAYLIST_EDITS = [
+  { instruction: "Add 3 upbeat 90s hip-hop tracks", result: "Added: C.R.E.A.M. (Wu-Tang), Juicy (Biggie), Nuthin' But a G Thang (Dr. Dre)" },
+  { instruction: "Remove anything slower than 90 BPM", result: "Removed 4 tracks below tempo threshold. Playlist tightened to 18 tracks." },
+  { instruction: "Make it more melancholic", result: "Swapped 5 energetic tracks for Elliott Smith, Nick Drake, and Sufjan Stevens cuts." },
+];
+
+const RADIO_INTROS = [
+  "You played this song three times last Tuesday at 11pm. Something about those violin strings hits different late at night. Here it is again.",
+  "This track was recorded in a barn in Vermont. The artist said it was about the same kind of restlessness you've been listening through lately.",
+  "Based on your 6pm Wednesday sessions, you lean darker when the week hasn't gone as planned. This one meets you there.",
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let playing = false, progressInterval = null, progressVal = 32;
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rand  = arr => arr[Math.floor(Math.random() * arr.length)];
+
+function setNowPlaying(name, artist, emoji) {
+  document.getElementById('np-track').textContent = name;
+  document.getElementById('np-artist').textContent = artist;
+  document.getElementById('np-art').textContent = emoji;
+}
+
+function togglePlay(btn) {
+  playing = !playing;
+  btn.textContent = playing ? '⏸' : '▶';
+  if (playing) {
+    progressInterval = setInterval(() => {
+      progressVal = Math.min(progressVal + 0.2, 100);
+      const pf = document.getElementById('progress-fill');
+      if (pf) pf.style.width = progressVal + '%';
+      if (progressVal >= 100) { clearInterval(progressInterval); progressVal = 0; playing = false; btn.textContent = '▶'; }
+    }, 200);
+  } else { clearInterval(progressInterval); }
+}
+
+function toggleHeart(el) {
+  el.textContent = el.textContent === '♡' ? '♥' : '♡';
+  el.style.color = el.textContent === '♥' ? '#ef4444' : 'var(--sp-sub)';
+}
+
+function showThinking(container, msg = 'AI is thinking') {
+  container.innerHTML = `<div class="ai-thinking">✨ ${msg}<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>`;
+}
+
+function makeNarrative(text) {
+  return `<div class="ai-narrative"><div class="ai-label">✦ AI PLAYLIST NARRATIVE</div>${text}</div>`;
+}
+
+function makeTrackList(tracks) {
+  return `<div class="track-list">${tracks.map((t, i) => `
+    <div class="track-item" onclick="playTrack('${t.name.replace(/'/g,"\\'")}','${t.artist.replace(/'/g,"\\'")}','${t.emoji}')" style="animation-delay:${i*0.07}s">
+      <div class="track-num">${i+1}</div>
+      <div class="track-art">${t.emoji}</div>
+      <div class="track-info">
+        <div class="track-name">${t.name}</div>
+        <div class="track-artist">${t.artist}</div>
+      </div>
+      <div class="track-dur">${t.dur || ((Math.floor(Math.random()*2+2))+':'+(Math.floor(Math.random()*50+10).toString().padStart(2,'0')))}</div>
+      <button class="ai-explain-btn" onclick="event.stopPropagation();alert('AI chose this for its emotional arc, tempo consistency, and overlap with your listening patterns in similar moods.')">Why this?</button>
+    </div>`).join('')}</div>`;
+}
+
+function playTrack(name, artist, emoji) {
+  setNowPlaying(name, artist, emoji);
+  playing = false; clearInterval(progressInterval); progressVal = 0;
+  const pf = document.getElementById('progress-fill');
+  if (pf) pf.style.width = '0%';
+  setTimeout(() => togglePlay(document.getElementById('play-btn')), 150);
+}
+
+// ── FEATURE ROUTER ────────────────────────────────────────────────────────────
+function openFeature(id) {
+  document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.add('active');
+  const panel = document.getElementById('demo-panel');
+  panel.classList.remove('hidden');
+
+  // On mobile, scroll panel into view
+  if (window.innerWidth <= 640) {
+    setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }
+
+  switch(id) {
+    case 'mood-dj':   renderMoodDJ(panel); break;
+    case 'chat':      renderChat(panel); break;
+    case 'vibe':      renderVibe(panel); break;
+    case 'co-create': renderCoCreate(panel); break;
+    case 'radio':     renderRadio(panel); break;
+  }
+}
+
+// ── MOOD DJ ───────────────────────────────────────────────────────────────────
+function renderMoodDJ(panel) {
+  panel.innerHTML = `
+    <div class="demo-header">
+      <div class="demo-icon">🤖</div>
+      <div><div class="demo-title">AI Mood DJ</div><div class="demo-subtitle">Describe your moment — AI builds your playlist and narrates it</div></div>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="mood-input" placeholder='Try: "late night drive", "rainy sunday morning"...' onkeydown="if(event.key==='Enter')generateMood()">
+      <button class="ai-btn" id="mood-btn" onclick="generateMood()">✨ Generate</button>
+    </div>
+    <div class="chips">
+      ${['late night drive','rainy sunday morning','gym energy','focus mode','heartbreak healing','summer rooftop'].map(t =>
+        `<span class="chip" onclick="document.getElementById('mood-input').value='${t}';generateMood()">${t}</span>`
+      ).join('')}
+    </div>
+    <div id="mood-output"></div>`;
+}
+
+async function generateMood() {
+  const input = document.getElementById('mood-input').value.trim().toLowerCase();
+  if (!input) return;
+  const btn = document.getElementById('mood-btn');
+  btn.disabled = true; btn.textContent = '⏳ Generating...';
+  const out = document.getElementById('mood-output');
+  showThinking(out, 'Parsing your vibe and curating tracks');
+  await sleep(1600);
+  const data = MOODS[input] || {
+    narrative: `You asked for "${input}". The AI identified emotional markers: introspective, atmospheric, unhurried. Here's a set of tracks that inhabit that territory — selected for arc, texture, and the way they hold space.`,
+    tracks: [
+      { name: "Lua", artist: "Bright Eyes", dur: "4:18", emoji: "🌙" },
+      { name: "Blue Ridge Mountains", artist: "Fleet Foxes", dur: "4:07", emoji: "🏔️" },
+      { name: "The Joke", artist: "Brandi Carlile", dur: "4:44", emoji: "🎭" },
+      { name: "No One's Gonna Love You", artist: "Band of Horses", dur: "3:42", emoji: "🌾" },
+      { name: "First Day of My Life", artist: "Bright Eyes", dur: "3:12", emoji: "✨" },
+    ]
+  };
+  out.innerHTML = makeNarrative(data.narrative) + makeTrackList(data.tracks);
+  btn.disabled = false; btn.textContent = '✨ Generate';
+  if (data.tracks[0]) setNowPlaying(data.tracks[0].name, data.tracks[0].artist, data.tracks[0].emoji);
+}
+
+// ── CHAT & DISCOVER ───────────────────────────────────────────────────────────
+function renderChat(panel) {
+  panel.innerHTML = `
+    <div class="demo-header">
+      <div class="demo-icon">💬</div>
+      <div><div class="demo-title">Chat & Discover</div><div class="demo-subtitle">Multi-turn conversational discovery — ask naturally, get music with context</div></div>
+    </div>
+    <div id="chat-msgs" class="chat-messages">
+      <div class="msg ai"><div class="msg-avatar">✦</div><div class="msg-bubble">Hey! Tell me what you're in the mood for and I'll find the perfect tracks.</div></div>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="chat-input" placeholder='e.g. "something like Phoebe Bridgers but more upbeat"' onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="ai-btn" onclick="sendChat()">Send →</button>
+    </div>
+    <div class="chips">
+      ${['something like Phoebe Bridgers but upbeat','90s hip hop but chill','focus music no lyrics','80s synth-pop'].map(s =>
+        `<span class="chip" onclick="document.getElementById('chat-input').value='${s}';sendChat()">${s}</span>`
+      ).join('')}
+    </div>`;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msgs  = document.getElementById('chat-msgs');
+  const text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  msgs.innerHTML += `<div class="msg user"><div class="msg-avatar">A</div><div class="msg-bubble">${text}</div></div>`;
+  msgs.innerHTML += `<div class="msg ai" id="thinking-msg"><div class="msg-avatar">✦</div><div class="msg-bubble ai-thinking">✨ thinking<span class="dots"><span>.</span><span>.</span><span>.</span></span></div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  await sleep(1300);
+  document.getElementById('thinking-msg')?.remove();
+  const lc = text.toLowerCase();
+  const resp = CHAT_RESPONSES.find(r => lc.includes(r.q)) || rand(CHAT_RESPONSES);
+  msgs.innerHTML += `<div class="msg ai"><div class="msg-avatar">✦</div><div class="msg-bubble">${resp.a}<br><br>${resp.tracks.map(t => `<span style="background:rgba(29,185,84,0.12);border:1px solid rgba(29,185,84,0.3);border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:12px;cursor:pointer" onclick="setNowPlaying('${t.name}','${t.artist}','${t.emoji}')">${t.emoji} ${t.name}</span>`).join('')}</div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── VISUAL VIBE MATCH ─────────────────────────────────────────────────────────
+function renderVibe(panel) {
+  panel.innerHTML = `
+    <div class="demo-header">
+      <div class="demo-icon">📸</div>
+      <div><div class="demo-title">Visual Vibe Match</div><div class="demo-subtitle">Upload a photo — multimodal AI reads the scene and generates a matching soundtrack</div></div>
+    </div>
+    <div class="photo-drop" id="photo-drop" onclick="document.getElementById('photo-file').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+      <input type="file" id="photo-file" accept="image/*" onchange="handlePhoto(event)">
+      <div class="drop-icon">📷</div>
+      <p><strong>Click to upload or drag & drop a photo</strong></p>
+      <p style="margin-top:5px;font-size:12px">Or try a scene preset below</p>
+    </div>
+    <div class="chips">
+      ${[['🌆','City Rooftop Sunset'],['☕','Cosy Café Morning'],['🌊','Beach at Dusk'],['🏔️','Mountain Hike'],['🎉','House Party'],['📚','Library Study']].map(([e,l]) =>
+        `<span class="chip" onclick="analyseScene('${l}','${e}')">${e} ${l}</span>`
+      ).join('')}
+    </div>
+    <div id="vibe-output"></div>`;
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('photo-drop').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file?.type.startsWith('image/')) analyseScene('Uploaded Photo', '🖼️');
+}
+function handlePhoto(e) { if (e.target.files[0]) analyseScene('Your Photo', '🖼️'); }
+
+async function analyseScene(scene, emoji) {
+  const out = document.getElementById('vibe-output');
+  showThinking(out, `Analysing "${scene}" with vision model`);
+  await sleep(2000);
+  const scenes = {
+    'City Rooftop Sunset': { tags: ['urban melancholy','golden hour','lo-fi warmth'], tracks: [{name:'Golden Hour',artist:'JVKE',emoji:'🌇'},{name:'Sunset Lover',artist:'Petit Biscuit',emoji:'🌅'},{name:'Electric Feel',artist:'MGMT',emoji:'⚡'},{name:'Young Folks',artist:'Peter Bjorn & John',emoji:'🎶'}] },
+    'Cosy Café Morning':   { tags: ['intimate','jazz-adjacent','soft focus'],          tracks: [{name:'Put Your Records On',artist:'Corinne Bailey Rae',emoji:'☕'},{name:"What's Going On",artist:'Marvin Gaye',emoji:'🎷'},{name:'Banana Pancakes',artist:'Jack Johnson',emoji:'🍌'},{name:'Sunday Morning',artist:'Velvet Underground',emoji:'📰'}] },
+    'Beach at Dusk':       { tags: ['reflective','liminal space','oceanic'],           tracks: [{name:'Ocean',artist:'Frank Ocean',emoji:'🌊'},{name:'Tenerife Sea',artist:'Ed Sheeran',emoji:'🏖️'},{name:'California',artist:'Grimes',emoji:'🌺'},{name:'Something Real',artist:'Jungle',emoji:'🌴'}] },
+  };
+  const data = scenes[scene] || { tags: ['atmospheric','textured','cinematic'], tracks: [{name:'Intro',artist:'The xx',emoji:'🌙'},{name:'Do I Wanna Know?',artist:'Arctic Monkeys',emoji:'🎸'},{name:'505',artist:'Arctic Monkeys',emoji:'🏙️'},{name:'Motion',artist:'Sampha',emoji:'🌿'}] };
+  out.innerHTML = `
+    <div class="ai-narrative">
+      <div class="ai-label">🖼️ SCENE ANALYSIS: ${emoji} ${scene}</div>
+      <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+        ${data.tags.map(t => `<span style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:var(--ai-amber);padding:3px 9px;border-radius:20px;font-size:11px">${t}</span>`).join('')}
+      </div>
+      The vision model identified this scene's mood signature. Here's a soundtrack that lives in the same emotional and textural space.
+    </div>
+    ${makeTrackList(data.tracks)}`;
+  if (data.tracks[0]) setNowPlaying(data.tracks[0].name, data.tracks[0].artist, data.tracks[0].emoji);
+}
+
+// ── AI CO-CREATOR ─────────────────────────────────────────────────────────────
+function renderCoCreate(panel) {
+  const playlist = [
+    { name: "Slow Burn", artist: "Kacey Musgraves", emoji: "🌿", dur: "4:33" },
+    { name: "Wait by the River", artist: "Lord Huron", emoji: "🌊", dur: "3:40" },
+    { name: "Motion Sickness", artist: "Phoebe Bridgers", emoji: "🎸", dur: "3:32" },
+    { name: "Georgia", artist: "Vance Joy", emoji: "🌻", dur: "3:40" },
+  ];
+  panel.innerHTML = `
+    <div class="demo-header">
+      <div class="demo-icon">✍️</div>
+      <div><div class="demo-title">AI Playlist Co-Creator</div><div class="demo-subtitle">Edit your playlist with natural language — AI explains every change</div></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--sp-sub);margin-bottom:10px;font-weight:600;letter-spacing:.5px">CURRENT PLAYLIST: "Chill Indie Evening"</div>
+      ${makeTrackList(playlist)}
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="edit-input" placeholder='e.g. "add upbeat 90s hip-hop", "make it more melancholic"' onkeydown="if(event.key==='Enter')applyEdit()">
+      <button class="ai-btn" onclick="applyEdit()">✨ Apply</button>
+    </div>
+    <div class="chips">
+      ${PLAYLIST_EDITS.map(e => `<span class="chip" onclick="document.getElementById('edit-input').value='${e.instruction}';applyEdit()">${e.instruction}</span>`).join('')}
+    </div>
+    <div id="edit-output"></div>`;
+}
+
+async function applyEdit() {
+  const input = document.getElementById('edit-input');
+  const out   = document.getElementById('edit-output');
+  const text  = input.value.trim(); if (!text) return;
+  input.value = '';
+  showThinking(out, 'Applying edit with AI reasoning');
+  await sleep(1500);
+  const edit = PLAYLIST_EDITS.find(e => e.instruction.toLowerCase().includes(text.split(' ')[0].toLowerCase())) || rand(PLAYLIST_EDITS);
+  out.innerHTML = `<div class="ai-narrative"><div class="ai-label">✍️ AI EDIT APPLIED</div><strong>Instruction:</strong> "${text}"<br><br>✅ ${edit.result}<br><br><em style="color:var(--sp-sub);font-size:12px">Each change preserves your playlist's emotional arc while fulfilling the instruction. You can accept or reject individual tracks.</em></div>`;
+}
+
+// ── AI RADIO SCRIPTS ──────────────────────────────────────────────────────────
+function renderRadio(panel) {
+  const queue = [
+    { name: "Majesty", artist: "Noname ft. Phoelix", emoji: "🎤" },
+    { name: "Garden Song", artist: "Phoebe Bridgers", emoji: "🌱" },
+    { name: "Clair de Lune", artist: "Claude Debussy", emoji: "🌙" },
+  ];
+  panel.innerHTML = `
+    <div class="demo-header">
+      <div class="demo-icon">🎙️</div>
+      <div><div class="demo-title">AI Radio Scripts</div><div class="demo-subtitle">Personalised DJ intros generated before each track</div></div>
+    </div>
+    <div class="ai-narrative" style="margin-bottom:18px">
+      <div class="ai-label">🎙️ AI DJ — LIVE SESSION</div>
+      AI Radio is <strong style="color:var(--sp-green)">ON</strong>. Before each track, a personalised 15-second intro is generated using your listening history, time of day, and artist context.
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--sp-sub);margin-bottom:12px;font-weight:600;letter-spacing:.5px">UP NEXT IN YOUR QUEUE</div>
+      ${queue.map((t, i) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:11px;background:${i===0?'rgba(124,58,237,0.1)':'transparent'};border-radius:8px;border:${i===0?'1px solid rgba(124,58,237,0.3)':'1px solid transparent'};margin-bottom:4px;cursor:pointer;flex-wrap:wrap;gap:10px" onclick="generateIntro('${t.name}','${t.artist}','${t.emoji}')">
+          <div style="width:38px;height:38px;border-radius:4px;background:var(--sp-hover);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${t.emoji}</div>
+          <div style="flex:1;min-width:100px"><div style="font-size:13.5px;font-weight:500">${t.name}</div><div style="font-size:11.5px;color:var(--sp-sub)">${t.artist}</div></div>
+          <button style="background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.4);color:var(--ai-purple-light);padding:6px 13px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;flex-shrink:0">🎙️ Intro</button>
+        </div>`).join('')}
+    </div>
+    <div id="radio-output"></div>`;
+}
+
+async function generateIntro(name, artist, emoji) {
+  const out = document.getElementById('radio-output');
+  showThinking(out, `Writing personalised intro for "${name}"`);
+  await sleep(1700);
+  const intro = rand(RADIO_INTROS);
+  out.innerHTML = `
+    <div class="ai-narrative">
+      <div class="ai-label">🎙️ AI DJ INTRO — ${emoji} ${name} by ${artist}</div>
+      <div style="font-size:14px;line-height:1.7;color:var(--sp-text);font-style:italic">"${intro}"</div>
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <button style="background:var(--sp-green);color:#000;border:none;border-radius:20px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px" onclick="setNowPlaying('${name}','${artist}','${emoji}')">▶ Play Now</button>
+        <button style="background:#1a1a1a;color:var(--sp-sub);border:1px solid #333;border-radius:20px;padding:8px 18px;cursor:pointer;font-size:13px" onclick="generateIntro('${name}','${artist}','${emoji}')">↺ Regenerate</button>
+      </div>
+    </div>`;
+  setNowPlaying(name, artist, emoji);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+openFeature('mood-dj');
+</script>
+</body>
+</html>

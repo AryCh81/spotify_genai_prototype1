@@ -1,0 +1,12 @@
+{
+  "name": "spotify-genai-prototype",
+  "version": "1.0.0",
+  "description": "Spotify × GenAI — Open Project 2026 by Society of Business",
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  },
+  "keywords": ["spotify", "genai", "open-project-2026"],
+  "author": "Society of Business",
+  "license": "MIT"
+}
